@@ -1,264 +1,251 @@
+// screens/card_add_screen.dart
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
+
 import '../models/card_model.dart';
 
 class CardAddScreen extends StatefulWidget {
   final CardModel? card;
-
-  const CardAddScreen({Key? key, this.card}) : super(key: key);
+  const CardAddScreen({super.key, this.card});
 
   @override
-  _CardAddScreenState createState() => _CardAddScreenState();
+  State<CardAddScreen> createState() => _CardAddScreenState();
 }
 
 class _CardAddScreenState extends State<CardAddScreen> {
   final _formKey = GlobalKey<FormState>();
-  late TextEditingController nameController;
-  late TextEditingController descriptionController;
-  late TextEditingController priceController;
-  late TextEditingController sourceController;
-  bool isWishList = false;
-  File? _imageFile;
-  String? _tempImagePath;
-  DateTime? _selectedDate;
-  List<String> _tags = [];
-  TextEditingController _tagInputController = TextEditingController();
 
+  late TextEditingController _nameController;
+  late TextEditingController _descriptionController;
+  late TextEditingController _priceController;
+  late TextEditingController _sourceController;
+  late TextEditingController _tagController;
+
+  bool _isWishList = false;
+  DateTime? _selectedDate;
+  File? _imageFile;
+  List<String> _tags = [];
+
+  // =====================
+  // Init / Dispose
+  // =====================
   @override
   void initState() {
     super.initState();
-    nameController = TextEditingController(text: widget.card?.name ?? '');
-    descriptionController = TextEditingController(
-      text: widget.card?.description ?? '',
-    );
-    priceController = TextEditingController(
-      text: widget.card?.price?.toString() ?? '',
-    );
-    sourceController = TextEditingController(
-      // ⭐ 初期化（編集時に既存値を入れる）
-      text: widget.card?.source ?? '',
-    );
-    isWishList = widget.card?.isWishList ?? false;
-    _selectedDate = widget.card?.date;
+    final c = widget.card;
 
-    // 既存カードの画像ファイルを読み込む
-    if (widget.card?.imagePath != null) {
-      _loadExistingImage(widget.card!.imagePath!);
+    _nameController = TextEditingController(text: c?.name ?? '');
+    _descriptionController = TextEditingController(text: c?.description ?? '');
+    _priceController =
+        TextEditingController(text: c?.price?.toString() ?? '');
+    _sourceController = TextEditingController(text: c?.source ?? '');
+    _tagController = TextEditingController();
+
+    _isWishList = c?.isWishList ?? false;
+    _selectedDate = c?.date;
+    _tags = List<String>.from(c?.tags ?? []);
+
+    if (c?.imagePath != null) {
+      _loadExistingImage(c!.imagePath!);
     }
-    //タグの項目
-    _tags = widget.card?.tags ?? [];
   }
 
   @override
   void dispose() {
-    nameController.dispose();
-    descriptionController.dispose();
-    priceController.dispose();
-    sourceController.dispose(); // ⭐ dispose 追加
+    _nameController.dispose();
+    _descriptionController.dispose();
+    _priceController.dispose();
+    _sourceController.dispose();
+    _tagController.dispose();
     super.dispose();
   }
 
+  // =====================
+  // Image
+  // =====================
   Future<void> _loadExistingImage(String fileName) async {
     final dir = await getApplicationDocumentsDirectory();
-    final file = File(path.join(dir.path, 'images', path.basename(fileName)));
+    final file = File(path.join(dir.path, 'images', fileName));
     if (await file.exists()) {
-      setState(() {
-        _imageFile = file;
-      });
+      setState(() => _imageFile = file);
     }
   }
 
   Future<void> _pickImage() async {
-    final picker = ImagePicker();
-    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
-    if (pickedFile != null) {
-      setState(() {
-        _imageFile = File(pickedFile.path);
-      });
+    final picked = await ImagePicker().pickImage(source: ImageSource.gallery);
+    if (picked != null) {
+      setState(() => _imageFile = File(picked.path));
     }
   }
 
-  // ⭐ 画像は「images フォルダへコピーしてファイル名を返す」実装に統一
-  Future<String?> _saveImage(File image) async {
-    try {
-      final dir = await getApplicationDocumentsDirectory();
-      final imagesDir = Directory(path.join(dir.path, 'images'));
-
-      if (!await imagesDir.exists()) {
-        await imagesDir.create(recursive: true);
-      }
-
-      final fileName = path.basename(image.path);
-      final savedPath = path.join(imagesDir.path, fileName);
-      await image.copy(savedPath);
-
-      return fileName; // ファイル名のみ返す
-    } catch (e) {
-      print('画像保存エラー: $e');
-      return null;
+  Future<String?> _saveImage(File file) async {
+    final dir = await getApplicationDocumentsDirectory();
+    final imgDir = Directory(path.join(dir.path, 'images'));
+    if (!await imgDir.exists()) {
+      await imgDir.create(recursive: true);
     }
+
+    final fileName = path.basename(file.path);
+    await file.copy(path.join(imgDir.path, fileName));
+    return fileName;
   }
 
-  void _saveCard() async {
+  // =====================
+  // Save
+  // =====================
+  Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
 
-    String? imagePath = widget.card?.imagePath;
-
-    // 新しい画像が選択された場合だけ保存
-    if (_imageFile != null) {
-      imagePath = await _saveImage(_imageFile!);
-    }
+    final imagePath = _imageFile != null
+        ? await _saveImage(_imageFile!)
+        : widget.card?.imagePath;
 
     final card = CardModel(
-      id: widget.card?.id ?? DateTime.now().millisecondsSinceEpoch.toString(),
-      name: nameController.text,
-      description: descriptionController.text,
-      price: priceController.text.isNotEmpty
-          ? int.parse(priceController.text)
-          : null,
-      imagePath: imagePath, // ← ファイル名のみ保存
-      isWishList: isWishList,
-      source: sourceController.text.isNotEmpty ? sourceController.text : null,
+      id: widget.card?.id ??
+          DateTime.now().millisecondsSinceEpoch.toString(),
+      name: _nameController.text.trim(),
+      description: _descriptionController.text.trim(),
+      price: _priceController.text.isEmpty
+          ? null
+          : int.tryParse(_priceController.text),
+      imagePath: imagePath,
+      isWishList: _isWishList,
+      source:
+      _sourceController.text.trim().isEmpty ? null : _sourceController.text,
       date: _selectedDate,
-      tags: _tags,
+      tags: List<String>.from(_tags),
     );
 
     Navigator.pop(context, card);
   }
 
+  // =====================
+  // UI
+  // =====================
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(widget.card != null ? 'カード編集' : 'カード追加')),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            children: [
-              GestureDetector(
-                onTap: _pickImage,
+      appBar: AppBar(
+        title: Text(widget.card == null ? 'カード追加' : 'カード編集'),
+      ),
+      body: Form(
+        key: _formKey,
+        child: ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            // ===== Image =====
+            GestureDetector(
+              onTap: _pickImage,
+              child: Container(
+                height: 220,
+                alignment: Alignment.center,
                 child: _imageFile != null
-                    ? Image.file(
-                  _imageFile!,
-                  width: double.infinity,
-                  height: 250,
-                  fit: BoxFit.contain,
-                )
+                    ? Image.file(_imageFile!, fit: BoxFit.contain)
                     : Image.asset(
-                  "assets/images/no_image.png",
-                  width: double.infinity,
-                  height: 250,
+                  'assets/images/no_image.png',
                   fit: BoxFit.contain,
                 ),
               ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: nameController,
-                decoration: const InputDecoration(labelText: 'カード名'),
-                validator: (value) =>
-                    value == null || value.isEmpty ? '必須項目です' : null,
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: descriptionController,
-                decoration: const InputDecoration(labelText: '説明'),
-                maxLines: 3,
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: priceController,
-                decoration: const InputDecoration(labelText: '価格'),
-                keyboardType: TextInputType.number,
-              ),
-              const SizedBox(height: 12),
-              // ⭐ 入手先フィールドを復活
-              TextFormField(
-                controller: sourceController,
-                decoration: const InputDecoration(
-                  labelText: '入手先 (例: ヤフオク、店舗名など)',
-                ),
-                maxLines: 1,
-              ),
-              const SizedBox(height: 12),
-              CheckboxListTile(
-                title: const Text('ウィッシュリストに追加'),
-                value: isWishList,
-                onChanged: (val) {
-                  setState(() {
-                    isWishList = val ?? false;
-                  });
-                },
-              ),
-              const SizedBox(height: 24),
-              // ===== 日付入力 =====
-              Row(
-                children: [
-                  Text(
-                    _selectedDate != null
-                        ? '取得日: ${_selectedDate!.toLocal().toIso8601String().substring(0, 10)}'
-                        : '取得日を選択',
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.calendar_today),
-                    onPressed: () async {
-                      final picked = await showDatePicker(
-                        context: context,
-                        initialDate: _selectedDate ?? DateTime.now(),
-                        firstDate: DateTime(2000),
-                        lastDate: DateTime.now(),
-                      );
-                      if (picked != null) {
-                        setState(() {
-                          _selectedDate = picked;
-                        });
-                      }
-                    },
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              // ===== タグ入力 =====
-              Text('タグ'),
-              const SizedBox(height: 8),
+            ),
 
-              Wrap(
-                spacing: 6,
-                runSpacing: 6,
-                children: _tags.map((tag) {
-                  return Chip(
-                    label: Text(tag),
-                    deleteIcon: Icon(Icons.close),
-                    onDeleted: () {
-                      setState(() {
-                        _tags.remove(tag);
-                      });
-                    },
-                  );
-                }).toList(),
-              ),
+            const SizedBox(height: 12),
 
-// 入力欄
-              TextField(
-                controller: _tagInputController,
-                decoration: const InputDecoration(
-                  labelText: 'タグ追加（Enterで確定）',
-                ),
-                onSubmitted: (val) {
-                  if (val.trim().isEmpty) return;
-                  setState(() {
-                    _tags.add(val.trim());
-                    _tagInputController.clear();
-                  });
-                },
+            // ===== Name =====
+            TextFormField(
+              controller: _nameController,
+              decoration: const InputDecoration(labelText: 'カード名'),
+              validator: (v) =>
+              v == null || v.isEmpty ? '必須項目です' : null,
+            ),
+
+            // ===== Description =====
+            TextFormField(
+              controller: _descriptionController,
+              decoration: const InputDecoration(labelText: '説明'),
+            ),
+
+            // ===== Price =====
+            TextFormField(
+              controller: _priceController,
+              decoration: const InputDecoration(labelText: '価格'),
+              keyboardType: TextInputType.number,
+            ),
+
+            // ===== Source =====
+            TextFormField(
+              controller: _sourceController,
+              decoration: const InputDecoration(labelText: '入手先'),
+            ),
+
+            // ===== Wishlist =====
+            CheckboxListTile(
+              title: const Text('ウィッシュリスト'),
+              value: _isWishList,
+              onChanged: (v) =>
+                  setState(() => _isWishList = v ?? false),
+            ),
+
+            // ===== Date =====
+            ListTile(
+              title: Text(
+                _selectedDate == null
+                    ? '取得日を選択'
+                    : '取得日: ${_selectedDate!.year}/${_selectedDate!.month}/${_selectedDate!.day}',
               ),
-              const SizedBox(height: 20),
-              ElevatedButton(onPressed: _saveCard, child: const Text('保存')),
-            ],
-          ),
+              trailing: const Icon(Icons.calendar_today),
+              onTap: () async {
+                final picked = await showDatePicker(
+                  context: context,
+                  initialDate: _selectedDate ?? DateTime.now(),
+                  firstDate: DateTime(2000),
+                  lastDate: DateTime.now(),
+                );
+                if (picked != null) {
+                  setState(() => _selectedDate = picked);
+                }
+              },
+            ),
+
+            const SizedBox(height: 12),
+
+            // ===== Tags =====
+            const Text('タグ'),
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: _tags
+                  .map(
+                    (t) => Chip(
+                  label: Text(t),
+                  onDeleted: () =>
+                      setState(() => _tags.remove(t)),
+                ),
+              )
+                  .toList(),
+            ),
+            TextField(
+              controller: _tagController,
+              decoration:
+              const InputDecoration(labelText: 'タグ追加（Enter）'),
+              onSubmitted: (v) {
+                final value = v.trim();
+                if (value.isEmpty || _tags.contains(value)) return;
+                setState(() {
+                  _tags.add(value);
+                  _tagController.clear();
+                });
+              },
+            ),
+
+            const SizedBox(height: 24),
+            ElevatedButton(
+              onPressed: _save,
+              child: const Text('保存'),
+            ),
+          ],
         ),
       ),
     );

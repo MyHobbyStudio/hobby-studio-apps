@@ -1,17 +1,21 @@
+// screens/card_detail_screen.dart
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as path;
+import 'package:hive/hive.dart';
+
 import '../models/card_model.dart';
 import 'card_add_screen.dart';
 import 'card_image_viewer_screen.dart';
-import 'package:hive/hive.dart';
 
 class CardDetailScreen extends StatelessWidget {
   final CardModel card;
-
   const CardDetailScreen({super.key, required this.card});
 
+  // =====================
+  // Image
+  // =====================
   Future<File?> _getImageFile(String? fileName) async {
     if (fileName == null) return null;
     final dir = await getApplicationDocumentsDirectory();
@@ -19,23 +23,53 @@ class CardDetailScreen extends StatelessWidget {
     return await file.exists() ? file : null;
   }
 
+  // =====================
+  // Utils
+  // =====================
+  String _formatDate(DateTime? date) {
+    if (date == null) return '未設定';
+    return '${date.year}/${date.month}/${date.day}';
+  }
+
+  Widget _labelValue(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 13,
+              color: Colors.white70,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            value,
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // =====================
+  // UI
+  // =====================
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(card.name),
-      ),
-
-      /// =======================
-      /// メイン情報（消してはいけない）
-      /// =======================
+      appBar: AppBar(title: Text(card.name)),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.only(bottom: 120), // ←下ボタン分の余白
+        padding: const EdgeInsets.only(bottom: 120),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-
-            /// ===== 画像 =====
+            // ===== 画像 =====
             FutureBuilder<File?>(
               future: _getImageFile(card.imagePath),
               builder: (context, snapshot) {
@@ -64,10 +98,13 @@ class CardDetailScreen extends StatelessWidget {
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(16),
                         child: file != null
-                            ? Image.file(file, fit: BoxFit.cover)
+                            ? Image.file(
+                          file,
+                          fit: BoxFit.contain, // ★ 全体表示
+                        )
                             : Image.asset(
                           'assets/images/no_image.png',
-                          fit: BoxFit.cover,
+                          fit: BoxFit.contain, // ★ 全体表示
                         ),
                       ),
                     ),
@@ -76,47 +113,48 @@ class CardDetailScreen extends StatelessWidget {
               },
             ),
 
-            /// ===== 情報 =====
+            // ===== 情報 =====
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    card.name,
-                    style: const TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-
-                  const SizedBox(height: 8),
+                  _labelValue('カード名', card.name),
 
                   if (card.price != null)
-                    Text(
-                      '¥${card.price}',
-                      style: const TextStyle(
-                        fontSize: 18,
-                        color: Colors.green,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
+                    _labelValue('価格', '¥${card.price}'),
 
-                  const SizedBox(height: 12),
+                  _labelValue('説明', card.description),
 
-                  Text(
-                    card.description,
-                    style: const TextStyle(fontSize: 16),
-                  ),
+                  _labelValue('取得日', _formatDate(card.date)),
 
-                  const SizedBox(height: 16),
+                  if (card.source != null && card.source!.isNotEmpty)
+                    _labelValue('入手先', card.source!),
 
                   if (card.tags != null && card.tags!.isNotEmpty)
-                    Wrap(
-                      spacing: 6,
-                      children: card.tags!.map((tag) {
-                        return Chip(label: Text(tag));
-                      }).toList(),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'タグ',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: Colors.white70,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Wrap(
+                          spacing: 6,
+                          runSpacing: 6,
+                          children: card.tags!
+                              .map(
+                                (tag) => Chip(
+                              label: Text(tag),
+                            ),
+                          )
+                              .toList(),
+                        ),
+                      ],
                     ),
                 ],
               ),
@@ -125,9 +163,7 @@ class CardDetailScreen extends StatelessWidget {
         ),
       ),
 
-      /// =======================
-      /// 下固定ボタン（ここが新規）
-      /// =======================
+      // ===== 下固定ボタン =====
       bottomNavigationBar: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(12),
@@ -149,7 +185,7 @@ class CardDetailScreen extends StatelessWidget {
                       builder: (_) => CardAddScreen(card: card),
                     ),
                   );
-                  if (updated != null) {
+                  if (updated is CardModel) {
                     Navigator.pop(context, true);
                   }
                 },
@@ -166,21 +202,21 @@ class CardDetailScreen extends StatelessWidget {
                       content: const Text('このカードを削除しますか？'),
                       actions: [
                         TextButton(
-                          onPressed: () => Navigator.pop(context, false),
+                          onPressed: () =>
+                              Navigator.pop(context, false),
                           child: const Text('キャンセル'),
                         ),
                         TextButton(
-                          onPressed: () => Navigator.pop(context, true),
+                          onPressed: () =>
+                              Navigator.pop(context, true),
                           child: const Text('削除'),
                         ),
                       ],
                     ),
                   );
+
                   if (ok == true) {
-                    // ★ ここが重要
-                    final box = Hive.box<CardModel>('cards');
-                    await box.delete(card.id);
-                    // 一覧画面に「削除された」ことを伝えて戻る
+                    Hive.box<CardModel>('cards').delete(card.id);
                     Navigator.pop(context, true);
                   }
                 },
@@ -192,9 +228,9 @@ class CardDetailScreen extends StatelessWidget {
     );
   }
 
-  /// =======================
-  /// 共通ボタン（ここに置く）
-  /// =======================
+  // =====================
+  // Bottom Button
+  // =====================
   Widget _bottomButton({
     required String label,
     required IconData icon,
@@ -204,31 +240,21 @@ class CardDetailScreen extends StatelessWidget {
       child: GestureDetector(
         onTap: onTap,
         child: Container(
-          height: 42,
+          height: 44,
           alignment: Alignment.center,
           decoration: BoxDecoration(
-            color: Colors.transparent,
+            border: Border.all(color: Colors.white70),
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: Colors.white70,
-              width: 1.5,
-            ),
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(
-                icon,
-                size: 18,
-                color: Colors.white,
-              ),
+              Icon(icon, size: 18),
               const SizedBox(width: 6),
               Text(
                 label,
                 style: const TextStyle(
-                  color: Colors.white,
                   fontWeight: FontWeight.bold,
-                  fontSize: 14,
                 ),
               ),
             ],

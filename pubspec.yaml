@@ -78,7 +78,6 @@ flutter:
   uses-material-design: true
 
   assets:
-    - assets/fonts/   # 👈 フォントディレクトリを追加（必要なら画像もここに追加）
     - assets/images/no_image.png
     - assets/images/add_card.png
     - assets/images/multi_add_cards.png
@@ -87,6 +86,7 @@ flutter:
     - assets/images/wallet.png
     - assets/images/wish_star.png
     - assets/images/swap_card.png
+    - assets/icon/app_icon.png
 
 #  fonts:
 #    - family: Cinzel Decorative

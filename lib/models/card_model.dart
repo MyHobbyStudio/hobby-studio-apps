@@ -23,7 +23,7 @@ class CardModel extends HiveObject {
   bool? _isWishList;
 
   @HiveField(6)
-  String? source;
+  String? source; // ★ 入手先は1つに戻す
 
   @HiveField(7)
   DateTime? date;
