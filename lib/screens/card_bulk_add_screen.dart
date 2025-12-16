@@ -15,125 +15,216 @@ class CardBulkAddWithImageScreen extends StatefulWidget {
 
 class _CardBulkAddWithImageScreenState
     extends State<CardBulkAddWithImageScreen> {
-  final int _rows = 5;
-  final ImagePicker _picker = ImagePicker();
+  static const int rows = 5;
+  final picker = ImagePicker();
 
-  final List<TextEditingController> _name = [];
-  final List<TextEditingController> _desc = [];
-  final List<TextEditingController> _price = [];
-  final List<TextEditingController> _source = [];
-  final List<bool> _wish = [];
-  final List<String?> _imageNames = [];
-  final List<File?> _images = [];
+  final List<TextEditingController> nameCtrls = [];
+  final List<TextEditingController> descCtrls = [];
+  final List<TextEditingController> priceCtrls = [];
+  final List<TextEditingController> sourceCtrls = [];
+  final List<TextEditingController> tagCtrls = [];
+
+  final List<List<String>> tagsList = [];
+  final List<DateTime?> dates = [];
+  final List<bool> wishFlags = [];
+  final List<File?> images = [];
+  final List<String?> imagePaths = [];
 
   @override
   void initState() {
     super.initState();
-    for (int i = 0; i < _rows; i++) {
-      _name.add(TextEditingController());
-      _desc.add(TextEditingController());
-      _price.add(TextEditingController());
-      _source.add(TextEditingController());
-      _wish.add(false);
-      _imageNames.add(null);
-      _images.add(null);
+    for (int i = 0; i < rows; i++) {
+      nameCtrls.add(TextEditingController());
+      descCtrls.add(TextEditingController());
+      priceCtrls.add(TextEditingController());
+      sourceCtrls.add(TextEditingController());
+      tagCtrls.add(TextEditingController());
+      tagsList.add([]);
+      dates.add(null);
+      wishFlags.add(false);
+      images.add(null);
+      imagePaths.add(null);
     }
   }
 
-  Future<String> _saveImage(XFile picked) async {
+  @override
+  void dispose() {
+    for (final c in [
+      ...nameCtrls,
+      ...descCtrls,
+      ...priceCtrls,
+      ...sourceCtrls,
+      ...tagCtrls
+    ]) {
+      c.dispose();
+    }
+    super.dispose();
+  }
+
+  Future<String> _saveImage(File file) async {
     final dir = await getApplicationDocumentsDirectory();
     final imgDir = Directory(path.join(dir.path, 'images'));
     if (!await imgDir.exists()) await imgDir.create(recursive: true);
 
     final fileName =
-        '${DateTime.now().millisecondsSinceEpoch}_${path.basename(picked.path)}';
-    await File(picked.path).copy(path.join(imgDir.path, fileName));
+        '${DateTime.now().millisecondsSinceEpoch}_${path.basename(file.path)}';
+    await file.copy(path.join(imgDir.path, fileName));
     return fileName;
   }
 
-  Future<void> _pickImage(int i) async {
-    final picked = await _picker.pickImage(source: ImageSource.gallery);
+  Future<void> _pickImage(int index) async {
+    final picked = await picker.pickImage(source: ImageSource.gallery);
+    if (picked == null) return;
+
+    final file = File(picked.path);
+    final saved = await _saveImage(file);
+
+    setState(() {
+      images[index] = file;
+      imagePaths[index] = saved;
+    });
+  }
+
+  Future<void> _pickDate(int index) async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: dates[index] ?? DateTime.now(),
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2100),
+    );
     if (picked != null) {
-      final name = await _saveImage(picked);
-      setState(() {
-        _imageNames[i] = name;
-        _images[i] = File(picked.path);
-      });
+      setState(() => dates[index] = picked);
     }
   }
 
-  void _save() {
-    final List<CardModel> cards = [];
+  void _saveAll() {
+    final List<CardModel> result = [];
 
-    for (int i = 0; i < _rows; i++) {
-      final name = _name[i].text.trim();
+    for (int i = 0; i < rows; i++) {
+      final name = nameCtrls[i].text.trim();
       if (name.isEmpty) continue;
 
-      cards.add(
+      result.add(
         CardModel(
-          id: '${DateTime.now().millisecondsSinceEpoch}_$i',
+          id: DateTime.now().millisecondsSinceEpoch.toString() + i.toString(),
           name: name,
-          description: _desc[i].text.trim(),
-          price: int.tryParse(_price[i].text),
-          imagePath: _imageNames[i],
-          source:
-          _source[i].text.trim().isEmpty ? null : _source[i].text.trim(),
-          isWishList: _wish[i],
+          description: descCtrls[i].text,
+          price: int.tryParse(priceCtrls[i].text),
+          source: sourceCtrls[i].text,
+          tags: tagsList[i],
+          date: dates[i],
+          isWishList: wishFlags[i],
+          imagePath: imagePaths[i],
         ),
       );
     }
 
-    if (cards.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('カード名を入力してください')),
-      );
-      return;
-    }
-
-    Navigator.pop(context, cards);
+    if (result.isEmpty) return;
+    Navigator.pop(context, result);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('まとめてカード追加')),
-      body: ListView(
+      body: ListView.builder(
         padding: const EdgeInsets.all(12),
-        children: [
-          for (int i = 0; i < _rows; i++)
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(8),
-                child: Column(
-                  children: [
-                    GestureDetector(
-                      onTap: () => _pickImage(i),
-                      child: SizedBox(
-                        height: 80,
-                        child: _images[i] != null
-                            ? Image.file(_images[i]!, fit: BoxFit.cover)
-                            : const Icon(Icons.add_a_photo),
+        itemCount: rows,
+        itemBuilder: (context, i) {
+          return Card(
+            margin: const EdgeInsets.only(bottom: 16),
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      GestureDetector(
+                        onTap: () => _pickImage(i),
+                        child: Container(
+                          width: 72,
+                          height: 72,
+                          color: Colors.grey[300],
+                          child: images[i] != null
+                              ? Image.file(images[i]!, fit: BoxFit.cover)
+                              : const Icon(Icons.add_a_photo),
+                        ),
                       ),
-                    ),
-                    TextField(controller: _name[i], decoration: const InputDecoration(labelText: 'カード名')),
-                    TextField(controller: _desc[i], decoration: const InputDecoration(labelText: '説明')),
-                    TextField(controller: _price[i], decoration: const InputDecoration(labelText: '価格')),
-                    TextField(controller: _source[i], decoration: const InputDecoration(labelText: '入手先')),
-                    CheckboxListTile(
-                      title: const Text('ウィッシュリスト'),
-                      value: _wish[i],
-                      onChanged: (v) => setState(() => _wish[i] = v ?? false),
-                    ),
-                  ],
-                ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: TextField(
+                          controller: nameCtrls[i],
+                          decoration:
+                          const InputDecoration(labelText: 'カード名'),
+                        ),
+                      ),
+                    ],
+                  ),
+                  TextField(
+                    controller: descCtrls[i],
+                    decoration: const InputDecoration(labelText: '説明'),
+                  ),
+                  TextField(
+                    controller: priceCtrls[i],
+                    decoration: const InputDecoration(labelText: '価格'),
+                    keyboardType: TextInputType.number,
+                  ),
+                  TextField(
+                    controller: sourceCtrls[i],
+                    decoration: const InputDecoration(labelText: '入手先'),
+                  ),
+                  Wrap(
+                    spacing: 6,
+                    children: tagsList[i]
+                        .map((t) => Chip(
+                      label: Text(t),
+                      onDeleted: () =>
+                          setState(() => tagsList[i].remove(t)),
+                    ))
+                        .toList(),
+                  ),
+                  TextField(
+                    controller: tagCtrls[i],
+                    decoration:
+                    const InputDecoration(labelText: 'タグ（Enter）'),
+                    onSubmitted: (v) {
+                      final val = v.trim();
+                      if (val.isEmpty) return;
+                      setState(() {
+                        tagsList[i].add(val);
+                        tagCtrls[i].clear();
+                      });
+                    },
+                  ),
+                  Row(
+                    children: [
+                      TextButton(
+                        onPressed: () => _pickDate(i),
+                        child: Text(dates[i] == null
+                            ? '日付未設定'
+                            : '${dates[i]!.year}/${dates[i]!.month}/${dates[i]!.day}'),
+                      ),
+                      const Spacer(),
+                      const Text('ウィッシュ'),
+                      Checkbox(
+                        value: wishFlags[i],
+                        onChanged: (v) =>
+                            setState(() => wishFlags[i] = v ?? false),
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ),
-          ElevatedButton.icon(
-            onPressed: _save,
-            icon: const Icon(Icons.save),
-            label: const Text('まとめて保存'),
-          ),
-        ],
+          );
+        },
+      ),
+      bottomNavigationBar: Padding(
+        padding: const EdgeInsets.all(12),
+        child: ElevatedButton(
+          onPressed: _saveAll,
+          child: const Text('まとめて保存'),
+        ),
       ),
     );
   }

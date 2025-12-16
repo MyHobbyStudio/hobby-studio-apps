@@ -11,6 +11,7 @@ import 'card_detail_screen.dart';
 import 'allowance_screen.dart';
 import 'stats_home_screen.dart';
 import 'card_bulk_add_screen.dart' as bulk;
+import 'trade_card_screen.dart';
 
 // =====================
 // 並び順
@@ -200,6 +201,18 @@ class _CardListScreenState extends State<CardListScreen> {
           },
         ),
         IconButton(
+          icon: Image.asset('assets/images/swap_card.png', width: 32),
+          tooltip: 'フリマ管理',
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => TradeCardScreen(),
+              ),
+            );
+          },
+        ),
+        IconButton(
           icon: Image.asset('assets/images/wish_star.png', width: 32),
           color: _showWishlistOnly ? Colors.yellow : null,
           onPressed: () {
@@ -353,39 +366,115 @@ class _CardListScreenState extends State<CardListScreen> {
   }
 
   Widget _buildCardTile(CardModel card, File? imageFile) {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: Colors.black,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: const Color(0xFFD4AF37), width: 1.5),
-      ),
-      child: ListTile(
-        contentPadding: const EdgeInsets.all(12),
-        leading: ClipRRect(
-          borderRadius: BorderRadius.circular(8),
-          child: imageFile != null
-              ? Image.file(imageFile, width: 56, height: 56, fit: BoxFit.contain)
-              : Image.asset('assets/images/no_image.png',
-              width: 56, height: 56, fit: BoxFit.contain),
-        ),
-        title: Text(card.name),
-        subtitle: card.source != null
-            ? Padding(
-          padding: const EdgeInsets.only(top: 4),
-          child: Chip(
-            label: Text(card.source!, style: const TextStyle(fontSize: 11)),
+    return GestureDetector(
+      onTap: () async {
+        final updated = await Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => CardDetailScreen(card: card),
           ),
-        )
-            : null,
-        trailing: card.price != null ? Text('¥${card.price}') : null,
-        onTap: () async {
-          final updated = await Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => CardDetailScreen(card: card)),
-          );
-          if (updated == true) await _refresh();
-        },
+        );
+        if (updated == true) {
+          await _refresh();
+        }
+      },
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.black,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: const Color(0xFFD4AF37), width: 1.5),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            /// ===== 画像（主役）=====
+            ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: SizedBox(
+                width: 100, // ← ここが効く
+                child: AspectRatio(
+                  aspectRatio: 2.5 / 3.5,
+                  child: imageFile != null
+                      ? Image.file(imageFile, fit: BoxFit.contain)
+                      : Image.asset(
+                    'assets/images/no_image.png',
+                    fit: BoxFit.contain,
+                  ),
+                ),
+              ),
+            ),
+
+            const SizedBox(width: 16),
+
+            /// ===== 右側情報 =====
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  /// カード名
+                  Text(
+                    card.name,
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+
+                  const SizedBox(height: 6),
+
+                  /// 補足情報
+                  if (card.price != null ||
+                      card.source != null ||
+                      card.date != null)
+                    Text(
+                      [
+                        if (card.price != null) '¥${card.price}',
+                        if (card.source != null &&
+                            card.source!.isNotEmpty)
+                          '入手先: ${card.source}',
+                        if (card.date != null)
+                          '${card.date!.year}/${card.date!.month}/${card.date!.day}',
+                      ].join(' / '),
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey[400],
+                      ),
+                    ),
+
+                  /// タグ
+                  if (card.tags != null && card.tags!.isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: -8,
+                      children: card.tags!
+                          .map(
+                            (t) => Chip(
+                              label: Text(
+                                t,
+                                style: const TextStyle(fontSize: 14),
+                              ),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 0,
+                              ),
+                              visualDensity: const VisualDensity(
+                                vertical: -4,
+                                horizontal: -2,
+                              ),
+                              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            ),
+                      )
+                          .toList(),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -24,6 +24,7 @@ class _TradeCardAddScreenState extends State<TradeCardAddScreen> {
   final _priceController = TextEditingController();
   final TextEditingController _tagController = TextEditingController();
   List<String> _listingTags = [];
+  final _descriptionController = TextEditingController();
 
   late Box<Purchase> _purchaseBox;
 
@@ -41,8 +42,8 @@ class _TradeCardAddScreenState extends State<TradeCardAddScreen> {
       _nameController.text = p.cardName;
       _priceController.text = p.price.toString();
       _isSold = p.isSold;
+      _descriptionController.text = p.listingDescription ?? '';
 
-      // 👇 出品先をタグとして復元
       _listingTags = p.listingSite
           .split(',')
           .map((e) => e.trim())
@@ -97,7 +98,7 @@ class _TradeCardAddScreenState extends State<TradeCardAddScreen> {
       price: int.parse(_priceController.text),
       date: widget.purchase?.date ?? DateTime.now(),
       imagePath: imagePath,
-
+      listingDescription: _descriptionController.text,
       // 👇 タグをカンマ区切りで保存
       listingSite: _listingTags.join(','),
 
@@ -144,17 +145,17 @@ class _TradeCardAddScreenState extends State<TradeCardAddScreen> {
                   children: [
                     _imageFile != null
                         ? Image.file(
-                            _imageFile!,
-                            width: 80,
-                            height: 80,
-                            fit: BoxFit.cover,
-                          )
-                        : Container(
-                            width: 80,
-                            height: 80,
-                            color: Colors.grey[300],
-                            child: const Icon(Icons.image, size: 40),
-                          ),
+                      _imageFile!,
+                      width: 80,
+                      height: 80,
+                      fit: BoxFit.cover,
+                    )
+                        : Image.asset(
+                      'assets/images/no_image.png',
+                      width: 80,
+                      height: 80,
+                      fit: BoxFit.contain,
+                    ),
                     const SizedBox(width: 12),
                     Column(
                       children: [
@@ -179,7 +180,15 @@ class _TradeCardAddScreenState extends State<TradeCardAddScreen> {
                   ),
                 ),
                 const SizedBox(height: 8),
-
+                TextFormField(
+                  controller: _descriptionController,
+                  maxLines: 6,
+                  decoration: const InputDecoration(
+                    labelText: '出品文章',
+                    hintText: 'フリマに貼る説明文を入力',
+                    alignLabelWithHint: true,
+                  ),
+                ),
                 Row(
                   children: [
                     Expanded(

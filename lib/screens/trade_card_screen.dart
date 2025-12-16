@@ -138,7 +138,7 @@ class _TradeCardScreenState extends State<TradeCardScreen> {
         color: Colors.black,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: const Color(0xFFD4AF37), // ゴールド枠
+          color: const Color(0xFFD4AF37),
           width: 1.2,
         ),
         boxShadow: [
@@ -149,52 +149,73 @@ class _TradeCardScreenState extends State<TradeCardScreen> {
           ),
         ],
       ),
-      child: ListTile(
-        contentPadding: const EdgeInsets.all(12),
 
-        // ===== 画像 =====
-        leading: p.imagePath != null
-            ? ClipRRect(
-          borderRadius: BorderRadius.circular(8),
-          child: Image.file(
-            File(p.imagePath!),
-            width: 56,
-            height: 56,
-            fit: BoxFit.cover,
-          ),
-        )
-            : Container(
-          width: 56,
-          height: 56,
-          decoration: BoxDecoration(
-            color: Colors.grey[800],
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: const Icon(Icons.image_not_supported, color: Colors.white70),
-        ),
+      // 👇 Container の child
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: () async {
+          await Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => TradeCardAddScreen(purchase: p),
+            ),
+          );
+          _refresh();
+        },
 
-        // ===== タイトル =====
-        title: Text(
-          p.cardName,
-          style: const TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 16,
-          ),
-        ),
-
-        // ===== サブ情報 =====
-        subtitle: Padding(
-          padding: const EdgeInsets.only(top: 6),
-          child: Column(
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('仕入れ: ¥${p.price}'),
-              Text('出品先: ${p.listingSite}'),
-              Text(
-                p.isSold ? '売却済み' : '出品中',
-                style: TextStyle(
-                  color: p.isSold ? Colors.greenAccent : Colors.orangeAccent,
-                  fontWeight: FontWeight.bold,
+              // ===== 画像 =====
+              ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: SizedBox(
+                  width: 160,
+                  child: AspectRatio(
+                    aspectRatio: 2.5 / 3.5,
+                    child: p.imagePath != null
+                        ? Image.file(
+                      File(p.imagePath!),
+                      fit: BoxFit.contain,
+                    )
+                        : Image.asset(
+                      'assets/images/no_image.png',
+                      fit: BoxFit.contain,
+                    ),
+                  ),
+                ),
+              ),
+
+              const SizedBox(width: 16),
+
+              // ===== テキスト =====
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      p.cardName,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text('仕入れ: ¥${p.price}'),
+                    Text('出品先: ${p.listingSite}'),
+                    const SizedBox(height: 6),
+                    Text(
+                      p.isSold ? '売却済み' : '出品中',
+                      style: TextStyle(
+                        color: p.isSold
+                            ? Colors.greenAccent
+                            : Colors.orangeAccent,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],

@@ -25,6 +25,9 @@ class Purchase extends HiveObject {
   @HiveField(6)
   bool isSold; // 売れたかどうか
 
+  @HiveField(7)
+  String? listingDescription;
+
   Purchase({
     required this.id,
     required this.cardName,
@@ -33,5 +36,6 @@ class Purchase extends HiveObject {
     this.imagePath,
     this.listingSite = 'その他',
     this.isSold = false,
+    this.listingDescription,
   });
 }

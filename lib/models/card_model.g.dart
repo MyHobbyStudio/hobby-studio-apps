@@ -22,11 +22,10 @@ class CardModelAdapter extends TypeAdapter<CardModel> {
       description: fields[2] as String,
       imagePath: fields[3] as String?,
       price: fields[4] as int?,
+      source: fields[6] as String?,
       date: fields[7] as DateTime?,
       tags: (fields[8] as List?)?.cast<String>(),
-    )
-      .._isWishList = fields[5] as bool?
-      ..source = fields[6] as String?;
+    ).._isWishList = fields[5] as bool?;
   }
 
   @override
