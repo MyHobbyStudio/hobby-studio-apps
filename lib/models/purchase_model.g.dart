@@ -25,13 +25,14 @@ class PurchaseAdapter extends TypeAdapter<Purchase> {
       listingSite: fields[5] as String,
       isSold: fields[6] as bool,
       listingDescription: fields[7] as String?,
+      cardId: fields[8] as String?,
     );
   }
 
   @override
   void write(BinaryWriter writer, Purchase obj) {
     writer
-      ..writeByte(8)
+      ..writeByte(9)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -47,7 +48,9 @@ class PurchaseAdapter extends TypeAdapter<Purchase> {
       ..writeByte(6)
       ..write(obj.isSold)
       ..writeByte(7)
-      ..write(obj.listingDescription);
+      ..write(obj.listingDescription)
+      ..writeByte(8)
+      ..write(obj.cardId);
   }
 
   @override

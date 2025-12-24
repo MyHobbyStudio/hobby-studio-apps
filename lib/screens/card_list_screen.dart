@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:card_manager/screens/settings_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:hive/hive.dart';
@@ -12,6 +13,7 @@ import 'allowance_screen.dart';
 import 'stats_home_screen.dart';
 import 'card_bulk_add_screen.dart' as bulk;
 import 'trade_card_screen.dart';
+import '../models/purchase_model.dart';
 
 // =====================
 // 並び順
@@ -22,6 +24,12 @@ enum CardSort {
   priceHigh,
   priceLow,
   nameAZ,
+}
+
+enum ListingFilter {
+  all,
+  listed,
+  unlisted,
 }
 
 class CardListScreen extends StatefulWidget {
@@ -37,9 +45,16 @@ class _CardListScreenState extends State<CardListScreen> {
 
   bool _isSearching = false;
   bool _showWishlistOnly = false;
+  late Box<Purchase> _purchaseBox;
 
   final TextEditingController _searchController = TextEditingController();
   CardSort _sort = CardSort.newest;
+  ListingFilter _listingFilter = ListingFilter.all;
+  bool _isListed(CardModel card) {
+    return _purchaseBox.values.any(
+          (p) => p.cardId == card.id && p.isSold == false,
+    );
+  }
 
   @override
   void initState() {
@@ -52,6 +67,7 @@ class _CardListScreenState extends State<CardListScreen> {
   // =====================
   Future<void> _openBox() async {
     _cardBox = await Hive.openBox<CardModel>('cards');
+    _purchaseBox = await Hive.openBox<Purchase>('purchases');
     _refresh();
   }
 
@@ -73,44 +89,24 @@ class _CardListScreenState extends State<CardListScreen> {
   }
 
   // =====================
-  // Add / Edit
-  // =====================
-  Future<void> _navigateToAddOrEdit(CardModel? card) async {
-    final result = await Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => CardAddScreen(card: card)),
-    );
-
-    if (result == null || result is! CardModel) return;
-
-    if (card != null && card.isInBox) {
-      card
-        ..name = result.name
-        ..description = result.description
-        ..price = result.price
-        ..imagePath = result.imagePath
-        ..isWishList = result.isWishList
-        ..source = result.source
-        ..tags = result.tags
-        ..date = result.date;
-      await card.save();
-    } else {
-      await _cardBox.put(result.id, result);
-    }
-
-    await _refresh();
-  }
-
-  // =====================
   // Filter & Sort
   // =====================
   void _applyFilters() {
     List<CardModel> temp = List.from(_cards);
 
+    // ★ 出品フィルタ（④）
+    if (_listingFilter == ListingFilter.listed) {
+      temp = temp.where(_isListed).toList();
+    } else if (_listingFilter == ListingFilter.unlisted) {
+      temp = temp.where((c) => !_isListed(c)).toList();
+    }
+
+    // wishlist
     if (_showWishlistOnly) {
       temp = temp.where((c) => c.isWishList).toList();
     }
 
+    // 検索
     if (_isSearching && _searchController.text.isNotEmpty) {
       final q = _searchController.text.toLowerCase();
       temp = temp.where((c) {
@@ -121,6 +117,7 @@ class _CardListScreenState extends State<CardListScreen> {
       }).toList();
     }
 
+    // 並び順
     temp.sort((a, b) {
       final aDate = a.date ?? DateTime.fromMillisecondsSinceEpoch(0);
       final bDate = b.date ?? DateTime.fromMillisecondsSinceEpoch(0);
@@ -181,7 +178,20 @@ class _CardListScreenState extends State<CardListScreen> {
         ),
         IconButton(
           icon: Image.asset('assets/images/add_card.png', width: 32),
-          onPressed: () => _navigateToAddOrEdit(null),
+          onPressed: () async {
+            final result = await Navigator.push<CardModel>(
+              context,
+              MaterialPageRoute(
+                builder: (_) => const CardAddScreen(card: null),
+              ),
+            );
+
+            if (!mounted) return;
+            if (result != null) {
+              await _cardBox.put(result.id, result);
+              await _refresh();
+            }
+          },
         ),
         IconButton(
           icon: Image.asset('assets/images/multi_add_cards.png', width: 32),
@@ -242,6 +252,16 @@ class _CardListScreenState extends State<CardListScreen> {
             );
           },
         ),
+        IconButton(
+          icon: const Icon(Icons.settings),
+          tooltip: '設定',
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const SettingsScreen()),
+            );
+          },
+        ),
       ],
     );
   }
@@ -261,7 +281,32 @@ class _CardListScreenState extends State<CardListScreen> {
           _sortChip('高い', CardSort.priceHigh),
           _sortChip('安い', CardSort.priceLow),
           _sortChip('A→Z', CardSort.nameAZ),
+
+          const SizedBox(width: 12),
+
+          // ===== 出品フィルタ =====
+          _listingFilterChip('全部', ListingFilter.all),
+          _listingFilterChip('出品中', ListingFilter.listed),
+          _listingFilterChip('未出品', ListingFilter.unlisted),
         ],
+      ),
+    );
+  }
+
+  Widget _listingFilterChip(String label, ListingFilter value) {
+    final selected = _listingFilter == value;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4),
+      child: ChoiceChip(
+        label: Text(label),
+        selected: selected,
+        selectedColor: Colors.orange,
+        onSelected: (_) {
+          setState(() {
+            _listingFilter = value;
+            _applyFilters();
+          });
+        },
       ),
     );
   }
@@ -309,26 +354,50 @@ class _CardListScreenState extends State<CardListScreen> {
                     future: _getImageFile(card.imagePath),
                     builder: (context, snapshot) {
                       final imageFile = snapshot.data;
-
                       return Dismissible(
                         key: ValueKey(card.id),
+
+                        // =====================
+                        // 左 → 右：編集
+                        // =====================
                         background: Container(
                           alignment: Alignment.centerLeft,
                           padding: const EdgeInsets.only(left: 20),
                           color: Colors.blueGrey,
                           child: const Icon(Icons.edit, color: Colors.white),
                         ),
+
+                        // =====================
+                        // 右 → 左：削除
+                        // =====================
                         secondaryBackground: Container(
                           alignment: Alignment.centerRight,
                           padding: const EdgeInsets.only(right: 20),
                           color: Colors.redAccent,
                           child: const Icon(Icons.delete, color: Colors.white),
                         ),
+
                         confirmDismiss: (direction) async {
+                          // ===== 編集 =====
                           if (direction == DismissDirection.startToEnd) {
-                            _navigateToAddOrEdit(card);
-                            return false;
+                            final result = await Navigator.push<CardModel>(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => CardAddScreen(card: card),
+                              ),
+                            );
+
+                            if (!mounted) return false;
+
+                            if (result != null) {
+                              await _cardBox.put(result.id, result);
+                              await _refresh();
+                            }
+
+                            return false; // ← 消さない
                           }
+
+                          // ===== 削除 =====
                           return await showDialog<bool>(
                             context: context,
                             builder: (_) => AlertDialog(
@@ -347,11 +416,31 @@ class _CardListScreenState extends State<CardListScreen> {
                             ),
                           );
                         },
-                        onDismissed: (_) async {
-                          await _cardBox.delete(card.id);
-                          await _refresh();
+
+                        onDismissed: (direction) async {
+                          if (direction == DismissDirection.endToStart) {
+                            await _cardBox.delete(card.id);
+                            await _refresh();
+                          }
                         },
-                        child: _buildCardTile(card, imageFile),
+
+                        // 👇 操作は中で受ける
+                        child: InkWell(
+                          onTap: () async {
+                            final result = await Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => CardDetailScreen(card: card),
+                              ),
+                            );
+
+                            if (!mounted) return;
+                            if (result == true || result is CardModel) {
+                              await _refresh();
+                            }
+                          },
+                          child: _buildCardTile(card, imageFile),
+                        ),
                       );
                     },
                   );
@@ -365,117 +454,130 @@ class _CardListScreenState extends State<CardListScreen> {
     );
   }
 
-  Widget _buildCardTile(CardModel card, File? imageFile) {
-    return GestureDetector(
-      onTap: () async {
-        final updated = await Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => CardDetailScreen(card: card),
-          ),
-        );
-        if (updated == true) {
-          await _refresh();
-        }
-      },
-      child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: Colors.black,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: const Color(0xFFD4AF37), width: 1.5),
-        ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            /// ===== 画像（主役）=====
-            ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: SizedBox(
-                width: 100, // ← ここが効く
-                child: AspectRatio(
-                  aspectRatio: 2.5 / 3.5,
-                  child: imageFile != null
-                      ? Image.file(imageFile, fit: BoxFit.contain)
-                      : Image.asset(
-                    'assets/images/no_image.png',
-                    fit: BoxFit.contain,
-                  ),
+  Widget _cardTileContent(CardModel card, File? imageFile) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.black,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: const Color(0xFFD4AF37), width: 1.5),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          /// ===== 画像 =====
+          ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: SizedBox(
+              width: 100,
+              child: AspectRatio(
+                aspectRatio: 2.5 / 3.5,
+                child: imageFile != null
+                    ? Image.file(imageFile, fit: BoxFit.contain)
+                    : Image.asset(
+                  'assets/images/no_image.png',
+                  fit: BoxFit.contain,
                 ),
               ),
             ),
+          ),
 
-            const SizedBox(width: 16),
+          const SizedBox(width: 16),
 
-            /// ===== 右側情報 =====
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  /// カード名
+          /// ===== 右側情報 =====
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  card.name,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+
+                const SizedBox(height: 6),
+
+                if (card.price != null ||
+                    card.source != null ||
+                    card.date != null)
                   Text(
-                    card.name,
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
+                    [
+                      if (card.price != null) '¥${card.price}',
+                      if (card.source != null && card.source!.isNotEmpty)
+                        '入手先: ${card.source}',
+                      if (card.date != null)
+                        '${card.date!.year}/${card.date!.month}/${card.date!.day}',
+                    ].join(' / '),
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey[400],
                     ),
                   ),
 
-                  const SizedBox(height: 6),
-
-                  /// 補足情報
-                  if (card.price != null ||
-                      card.source != null ||
-                      card.date != null)
-                    Text(
-                      [
-                        if (card.price != null) '¥${card.price}',
-                        if (card.source != null &&
-                            card.source!.isNotEmpty)
-                          '入手先: ${card.source}',
-                        if (card.date != null)
-                          '${card.date!.year}/${card.date!.month}/${card.date!.day}',
-                      ].join(' / '),
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey[400],
+                if (card.tags != null && card.tags!.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: -8,
+                    children: card.tags!
+                        .map(
+                          (t) => Chip(
+                        label: Text(
+                          t,
+                          style: const TextStyle(fontSize: 14),
+                        ),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 0,
+                        ),
+                        visualDensity: const VisualDensity(
+                          vertical: -4,
+                          horizontal: -2,
+                        ),
+                        materialTapTargetSize:
+                        MaterialTapTargetSize.shrinkWrap,
                       ),
-                    ),
-
-                  /// タグ
-                  if (card.tags != null && card.tags!.isNotEmpty) ...[
-                    const SizedBox(height: 8),
-                    Wrap(
-                      spacing: 6,
-                      runSpacing: -8,
-                      children: card.tags!
-                          .map(
-                            (t) => Chip(
-                              label: Text(
-                                t,
-                                style: const TextStyle(fontSize: 14),
-                              ),
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 6,
-                                vertical: 0,
-                              ),
-                              visualDensity: const VisualDensity(
-                                vertical: -4,
-                                horizontal: -2,
-                              ),
-                              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                            ),
-                      )
-                          .toList(),
-                    ),
-                  ],
+                    )
+                        .toList(),
+                  ),
                 ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCardTile(CardModel card, File? imageFile) {
+    final isListed = _isListed(card);
+
+    return Stack(
+      children: [
+        // 元のカードUI
+        _cardTileContent(card, imageFile),
+
+        // 出品中バッジ
+        if (isListed)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+            decoration: BoxDecoration(
+              color: Colors.orange,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: const Text(
+              '出品中',
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.bold,
+                color: Colors.black,
               ),
             ),
-          ],
-        ),
-      ),
+          ),
+      ],
     );
   }
 }

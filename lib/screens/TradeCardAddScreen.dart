@@ -5,13 +5,23 @@ import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as path;
 import '../models/purchase_model.dart';
+import 'trade_card_screen.dart';
+
 
 class TradeCardAddScreen extends StatefulWidget {
-  final Purchase? purchase; // ★編集用
+  final Purchase? purchase;      // 既存出品の編集用
+  final String? initialCardName; // ← 追加
+  final String? initialImagePath;
+  final int? initialPrice;
+  final String? initialCardId;
 
   const TradeCardAddScreen({
     Key? key,
     this.purchase,
+    this.initialCardName,
+    this.initialImagePath,
+    this.initialPrice,
+    this.initialCardId,
   }) : super(key: key);
 
   @override
@@ -38,12 +48,12 @@ class _TradeCardAddScreenState extends State<TradeCardAddScreen> {
     _openBox();
 
     if (widget.purchase != null) {
+      // ===== 既存出品の編集 =====
       final p = widget.purchase!;
       _nameController.text = p.cardName;
       _priceController.text = p.price.toString();
       _isSold = p.isSold;
       _descriptionController.text = p.listingDescription ?? '';
-
       _listingTags = p.listingSite
           .split(',')
           .map((e) => e.trim())
@@ -52,6 +62,17 @@ class _TradeCardAddScreenState extends State<TradeCardAddScreen> {
 
       if (p.imagePath != null) {
         _imageFile = File(p.imagePath!);
+      }
+    } else {
+      // ===== カード一覧 → 新規出品 =====
+      if (widget.initialCardName != null) {
+        _nameController.text = widget.initialCardName!;
+      }
+      if (widget.initialPrice != null) {
+        _priceController.text = widget.initialPrice.toString();
+      }
+      if (widget.initialImagePath != null) {
+        _imageFile = File(widget.initialImagePath!);
       }
     }
   }
@@ -101,10 +122,15 @@ class _TradeCardAddScreenState extends State<TradeCardAddScreen> {
       listingDescription: _descriptionController.text,
       // 👇 タグをカンマ区切りで保存
       listingSite: _listingTags.join(','),
-
       isSold: _isSold,
+      cardId: widget.purchase?.cardId ?? widget.initialCardId,
     );
-
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('「${purchase.cardName}」を出品管理しました'),
+        duration: const Duration(seconds: 2),
+      ),
+    );
     await _purchaseBox.put(purchase.id, purchase);
     Navigator.pop(context, purchase);
   }

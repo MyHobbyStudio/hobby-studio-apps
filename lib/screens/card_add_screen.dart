@@ -103,23 +103,22 @@ class _CardAddScreenState extends State<CardAddScreen> {
         ? await _saveImage(_imageFile!)
         : widget.card?.imagePath;
 
-    final card = CardModel(
+    final updated = CardModel(
       id: widget.card?.id ??
           DateTime.now().millisecondsSinceEpoch.toString(),
       name: _nameController.text.trim(),
       description: _descriptionController.text.trim(),
-      price: _priceController.text.isEmpty
+      price: int.tryParse(_priceController.text),
+      source: _sourceController.text.trim().isEmpty
           ? null
-          : int.tryParse(_priceController.text),
-      imagePath: imagePath,
-      isWishList: _isWishList,
-      source:
-      _sourceController.text.trim().isEmpty ? null : _sourceController.text,
+          : _sourceController.text.trim(),
       date: _selectedDate,
       tags: List<String>.from(_tags),
+      imagePath: imagePath,
+      isWishList: _isWishList,
     );
 
-    Navigator.pop(context, card);
+    Navigator.pop(context, updated); // ★ 保存しない、返すだけ
   }
 
   // =====================

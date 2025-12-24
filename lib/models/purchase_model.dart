@@ -28,6 +28,9 @@ class Purchase extends HiveObject {
   @HiveField(7)
   String? listingDescription;
 
+  @HiveField(8)
+  String? cardId;
+
   Purchase({
     required this.id,
     required this.cardName,
@@ -37,5 +40,40 @@ class Purchase extends HiveObject {
     this.listingSite = 'その他',
     this.isSold = false,
     this.listingDescription,
+    this.cardId,
   });
+
+  // =====================
+  // ⭐️ JSON Export
+  // =====================
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'cardName': cardName,
+      'price': price,
+      'date': date.toIso8601String(),
+      'imagePath': imagePath,
+      'listingSite': listingSite,
+      'isSold': isSold,
+      'listingDescription': listingDescription,
+      'cardId': cardId,
+    };
+  }
+
+  // =====================
+  // ⭐️ JSON Import
+  // =====================
+  factory Purchase.fromJson(Map<String, dynamic> json) {
+    return Purchase(
+      id: json['id'],
+      cardName: json['cardName'],
+      price: json['price'],
+      date: DateTime.parse(json['date']),
+      imagePath: json['imagePath'],
+      listingSite: json['listingSite'] ?? '',
+      isSold: json['isSold'] ?? false,
+      listingDescription: json['listingDescription'],
+      cardId: json['cardId'],
+    );
+  }
 }

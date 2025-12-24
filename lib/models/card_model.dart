@@ -49,4 +49,43 @@ class CardModel extends HiveObject {
   set isWishList(bool value) {
     _isWishList = value;
   }
+
+
+  // =====================
+  // ⭐️ JSON Export
+  // =====================
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'name': name,
+      'price': price,
+      'description': description,
+      'date': date?.toIso8601String(),
+      'imagePath': imagePath,
+      'source': source,
+      'tags': tags,
+      'isWishList': isWishList,
+    };
+  }
+
+  // =====================
+  // ⭐️ JSON Import
+  // =====================
+  factory CardModel.fromJson(Map<String, dynamic> json) {
+    return CardModel(
+      id: json['id'],
+      name: json['name'],
+      price: json['price'],
+      description: json['description'] ?? '',
+      date: json['date'] != null
+          ? DateTime.parse(json['date'])
+          : null,
+      imagePath: json['imagePath'],
+      source: json['source'],
+      tags: json['tags'] != null
+          ? List<String>.from(json['tags'])
+          : null,
+      isWishList: json['isWishList'] ?? false,
+    );
+  }
 }
