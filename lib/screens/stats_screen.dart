@@ -66,14 +66,7 @@ class StatsScreen extends StatelessWidget {
                     ),
                     rightTitles: AxisTitles(
                       sideTitles: SideTitles(
-                        showTitles: true,
-                        reservedSize: 60, // ←左右揃えるなら60
-                        getTitlesWidget: (value, meta) {
-                          return Text(
-                            value.toInt().toString(),
-                            style: const TextStyle(fontSize: 12),
-                          );
-                        },
+                        showTitles: false,
                       ),
                     ),
                   ),

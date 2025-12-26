@@ -157,7 +157,7 @@ class _TradeCardAddScreenState extends State<TradeCardAddScreen> {
                 // 仕入れ価格
                 TextFormField(
                   controller: _priceController,
-                  decoration: const InputDecoration(labelText: '仕入れ価格'),
+                  decoration: const InputDecoration(labelText: '販売価格'),
                   keyboardType: TextInputType.number,
                   validator: (value) {
                     if (value == null || value.isEmpty) return '必須項目です';
