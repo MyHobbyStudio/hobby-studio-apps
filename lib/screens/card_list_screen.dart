@@ -243,15 +243,15 @@ class _CardListScreenState extends State<CardListScreen> {
             );
           },
         ),
-        IconButton(
-          icon: Image.asset('assets/images/wallet.png', width: 32),
-          onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => AllowanceScreen()),
-            );
-          },
-        ),
+        // IconButton(
+        //   icon: Image.asset('assets/images/wallet.png', width: 32),
+        //   onPressed: () {
+        //     Navigator.push(
+        //       context,
+        //       MaterialPageRoute(builder: (_) => AllowanceScreen()),
+        //     );
+        //   },
+        // ),
         IconButton(
           icon: const Icon(Icons.settings),
           tooltip: '設定',

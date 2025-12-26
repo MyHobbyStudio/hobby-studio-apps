@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:hive/hive.dart';
-import 'package:path_provider/path_provider.dart';
+import 'import_exception.dart';
 
 import '../models/card_model.dart';
 import '../models/purchase_model.dart';
@@ -51,13 +51,6 @@ class ImportService {
     }
   }
 
-  static void _validateVersion(Map<String, dynamic> data) {
-    final int version = data['version'] ?? 1;
-    if (version != 1) {
-      throw Exception('未対応のバックアップバージョンです: $version');
-    }
-  }
-
   static Future<void> _importCards(Map<String, dynamic> data) async {
     final cardBox = Hive.box<CardModel>('cards');
     final List cardsJson = data['cards'] ?? [];
@@ -82,22 +75,35 @@ class ImportService {
   static void _validateBackupFormat(Map<String, dynamic> data) {
     // ===== アプリ識別 =====
     if (data['app'] != 'trading_card_manager') {
-      throw Exception('このアプリ用のバックアップではありません');
+      throw ImportException(
+        'このファイルはカード管理アプリのバックアップではありません。\n'
+            '正しいバックアップファイルを選択してください。',
+      );
     }
 
     // ===== バージョン =====
     final version = data['backupVersion'];
     if (version != 1) {
-      throw Exception('未対応のバックアップバージョンです: $version');
+      throw ImportException('未対応のバックアップバージョンです: $version');
     }
 
-    // ⭐️===== 必須キー存在チェック =====
+    // ===== 必須キー存在チェック =====
     if (!data.containsKey('cards') || data['cards'] is! List) {
-      throw Exception('カードデータが見つかりません');
+      throw ImportException('カードデータが見つかりません');
     }
 
     if (!data.containsKey('purchases') || data['purchases'] is! List) {
-      throw Exception('出品データが見つかりません');
+      throw ImportException('出品データが見つかりません');
+    }
+
+    // ⭐️===== 空バックアップ防止（ここ！）=====
+    final cards = data['cards'] as List;
+    final purchases = data['purchases'] as List;
+
+    if (cards.isEmpty && purchases.isEmpty) {
+      throw ImportException(
+        'バックアップに復元できるデータがありません',
+      );
     }
   }
 }

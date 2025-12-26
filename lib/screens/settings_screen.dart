@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../services/export_service.dart';
+import '../services/import_exception.dart';
 import '../services/import_service.dart';
 import 'package:file_picker/file_picker.dart';
 
@@ -124,7 +125,19 @@ class SettingsScreen extends StatelessWidget {
                   final file = await _pickBackupFile();
                   if (file == null) return;
 
-                  await ImportService.importAll(file);
+                  try {
+                    await ImportService.importAll(file);
+                  } on ImportException catch (e) {
+                    if (!context.mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text(e.message)),
+                    );
+                  } catch (e) {
+                    if (!context.mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('インポートに失敗しました')),
+                    );
+                  }
                 },
               );
             },
