@@ -59,6 +59,8 @@ class SettingsScreen extends StatelessWidget {
 
       if (!context.mounted) return;
 
+      Navigator.pop(context, true);
+
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('処理が完了しました')),
       );

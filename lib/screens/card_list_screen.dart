@@ -255,11 +255,17 @@ class _CardListScreenState extends State<CardListScreen> {
         IconButton(
           icon: const Icon(Icons.settings),
           tooltip: '設定',
-          onPressed: () {
-            Navigator.push(
+          onPressed: () async {
+            final result = await Navigator.push<bool>(
               context,
               MaterialPageRoute(builder: (_) => const SettingsScreen()),
             );
+
+            if (!mounted) return;
+
+            if (result == true) {
+              await _refresh();
+            }
           },
         ),
       ],
@@ -500,50 +506,91 @@ class _CardListScreenState extends State<CardListScreen> {
 
                 const SizedBox(height: 6),
 
-                if (card.price != null ||
-                    card.source != null ||
-                    card.date != null)
+                // ===== 価格（ゴールド・主役）=====
+                if (card.price != null)
                   Text(
-                    [
-                      if (card.price != null) '¥${card.price}',
-                      if (card.source != null && card.source!.isNotEmpty)
-                        '入手先: ${card.source}',
-                      if (card.date != null)
-                        '${card.date!.year}/${card.date!.month}/${card.date!.day}',
-                    ].join(' / '),
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey[400],
+                    '¥${card.price}',
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFFD4AF37), // ゴールド
+                    ),
+                  ),
+
+// ===== 補足情報（グレー・脇役）=====
+                if (card.source != null && card.source!.isNotEmpty ||
+                    card.date != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 2),
+                    child: Text(
+                      [
+                        if (card.source != null && card.source!.isNotEmpty)
+                          '入手先: ${card.source}',
+                        if (card.date != null)
+                          '${card.date!.year}/${card.date!.month}/${card.date!.day}',
+                      ].join(' / '),
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: Colors.grey[400],
+                      ),
                     ),
                   ),
 
                 if (card.tags != null && card.tags!.isNotEmpty) ...[
                   const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 6,
-                    runSpacing: -8,
-                    children: card.tags!
-                        .map(
-                          (t) => Chip(
-                        label: Text(
-                          t,
-                          style: const TextStyle(fontSize: 14),
-                        ),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 6,
-                          vertical: 0,
-                        ),
-                        visualDensity: const VisualDensity(
-                          vertical: -4,
-                          horizontal: -2,
-                        ),
-                        materialTapTargetSize:
-                        MaterialTapTargetSize.shrinkWrap,
-                      ),
-                    )
-                        .toList(),
+
+                  Builder(
+                    builder: (_) {
+                      final tags = card.tags!;
+                      final visibleTags = tags.take(2).toList();
+                      final remainingCount = tags.length - visibleTags.length;
+
+                      return Wrap(
+                        spacing: 6,
+                        runSpacing: 4,
+                        children: [
+                          // 表示するタグ（最大2）
+                          ...visibleTags.map(
+                                (t) => Chip(
+                              label: Text(
+                                t,
+                                style: const TextStyle(fontSize: 13),
+                              ),
+                              padding: const EdgeInsets.symmetric(horizontal: 6),
+                              visualDensity: const VisualDensity(
+                                horizontal: -2,
+                                vertical: -4,
+                              ),
+                              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            ),
+                          ),
+
+                          // +N 表示
+                          if (remainingCount > 0)
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: Colors.black,
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: const Color(0xFFD4AF37),
+                                  width: 1,
+                                ),
+                              ),
+                              child: Text(
+                                '+$remainingCount',
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: Color(0xFFD4AF37),
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                        ],
+                      );
+                    },
                   ),
-                ],
+                ]
               ],
             ),
           ),
@@ -562,18 +609,22 @@ class _CardListScreenState extends State<CardListScreen> {
 
         // 出品中バッジ
         if (isListed)
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-            decoration: BoxDecoration(
-              color: Colors.orange,
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: const Text(
-              '出品中',
-              style: TextStyle(
-                fontSize: 10,
-                fontWeight: FontWeight.bold,
-                color: Colors.black,
+          Positioned(
+            top: 6,
+            left: 6,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
+                color: Colors.orange,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Text(
+                '出品中',
+                style: TextStyle(
+                  fontSize: 9,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black,
+                ),
               ),
             ),
           ),

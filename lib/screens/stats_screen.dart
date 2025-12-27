@@ -16,6 +16,13 @@ class StatsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
 
+    final maxValue = monthlyData.reduce((a, b) => a > b ? a : b);
+    final step = _calcStep(maxValue);
+
+// step刻みでmaxYを切り上げ
+    final maxYInt = ((maxValue * 1.2) / step).ceil() * step;
+    final double maxY = maxYInt.toDouble();
+
     if (monthlyData.isEmpty) {
       return Scaffold(
         appBar: AppBar(title: const Text('統計')),
@@ -30,78 +37,100 @@ class StatsScreen extends StatelessWidget {
           children: [
             Expanded(
               child: BarChart(
-                BarChartData(
-                  alignment: BarChartAlignment.spaceAround,
+                  BarChartData(
+                    alignment: BarChartAlignment.spaceAround,
+                    maxY: maxY,
 
-                  maxY: (monthlyData.reduce((a,b)=>a>b?a:b) * 1.2).toDouble(),
-                  titlesData: FlTitlesData(
-                    bottomTitles: AxisTitles(
-                      sideTitles: SideTitles(
-                        showTitles: true,
-                        reservedSize: 32,
-                        getTitlesWidget: (value, meta) {
-                          final index = value.toInt();
-                          if (index >= 0 && index < months.length) {
-                            return Text(months[index].substring(5)); // 月だけ表示
-                          }
-                          return const Text('');
-                        },
-                        interval: 1,
+                    // ✅ ① グリッド（普通の補助線）
+                    gridData: FlGridData(
+                      show: true,
+                      drawVerticalLine: false,
+                      horizontalInterval: maxY / 6, // だいたい6本くらいにする（好みで調整）
+                      getDrawingHorizontalLine: (value) => FlLine(
+                        color: Colors.white.withOpacity(0.14),
+                        strokeWidth: 1.2,
+                        dashArray: [6, 6],
                       ),
                     ),
-                    leftTitles: AxisTitles(
-                      sideTitles: SideTitles(
-                        showTitles: true,
-                        reservedSize: 80, // ←思い切って広げる
-                        getTitlesWidget: (value, meta) {
-                          return Padding(
-                            padding: const EdgeInsets.only(right: 8), // ←追加
-                            child: Text(
-                              value.toInt().toString(),
-                              style: const TextStyle(fontSize: 12),
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                    rightTitles: AxisTitles(
-                      sideTitles: SideTitles(
-                        showTitles: false,
-                      ),
-                    ),
-                  ),
-                  borderData: FlBorderData(show: false),
-                  barGroups: List.generate(monthlyData.length, (i) {
-                    return BarChartGroupData(
-                      x: i,
-                      barRods: [
-                        BarChartRodData(
-                          toY: monthlyData[i].toDouble(),
-                          color: Colors.blueAccent,
-                          width: 16,
-                          borderRadius: BorderRadius.circular(4),
+
+                    // ✅ ② MAXライン（必ず表示される）
+                    extraLinesData: ExtraLinesData(
+                      horizontalLines: [
+                        HorizontalLine(
+                          y: maxY,
+                          color: const Color(0xFFD4AF37).withOpacity(0.35),
+                          strokeWidth: 1.4,
+                          dashArray: [8, 6],
                         ),
                       ],
-                    );
-                  }),
-                ),
+                    ),
+
+                    titlesData: FlTitlesData(
+                      topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)), // ←余計な上の数字を消す
+                      rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+
+                      bottomTitles: AxisTitles(
+                        sideTitles: SideTitles(
+                          showTitles: true,
+                          reservedSize: 32,
+                          interval: 1,
+                          getTitlesWidget: (value, meta) {
+                            final index = value.toInt();
+                            if (index >= 0 && index < months.length) {
+                              return Text(months[index].substring(5)); // 01-12
+                            }
+                            return const SizedBox.shrink();
+                          },
+                        ),
+                      ),
+
+                      // ※ leftTitles は「金額」を出す場所（今の君のコードは月を出してておかしいので注意）
+                      leftTitles: AxisTitles(
+                        sideTitles: SideTitles(
+                          showTitles: true,
+                          reservedSize: 56,
+                          getTitlesWidget: (value, meta) {
+                            // 例：0 / maxY/2 / maxY だけ表示
+                            if (value == 0 ||
+                                value == (maxY / 2).roundToDouble() ||
+                                value == maxY.roundToDouble()) {
+                              return Text(
+                                value.toInt().toString(),
+                                style: TextStyle(fontSize: 11, color: Colors.grey[400]),
+                              );
+                            }
+                            return const SizedBox.shrink();
+                          },
+                        ),
+                      ),
+                    ),
+
+                    borderData: FlBorderData(show: false),
+                    barGroups: List.generate(monthlyData.length, (i) {
+                      return BarChartGroupData(
+                        x: i,
+                        barRods: [
+                          BarChartRodData(
+                            toY: monthlyData[i].toDouble(),
+                            color: Colors.blueAccent,
+                            width: 16,
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                        ],
+                      );
+                    }),
+                  )
               ),
             ),
             const SizedBox(height: 24),
-            // Expanded(
-            //   child: ListView.builder(
-            //     itemCount: months.length,
-            //     itemBuilder: (context, index) {
-            //       return Text(
-            //         '${months[index]}: 累計 ${cumulative[index]}',
-            //         style: const TextStyle(fontSize: 16),
-            //       );
-            //     },
-            //   ),
-            // ),
           ],
         ),
       ),
     );
+  }
+  int _calcStep(int maxValue) {
+    if (maxValue <= 10000) return 2500;
+    if (maxValue <= 50000) return 5000;
+    return 10000;
   }
 }
