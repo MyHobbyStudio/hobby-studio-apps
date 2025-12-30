@@ -93,29 +93,36 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
   Widget _bottomButton({
     required String label,
     required IconData icon,
-    required VoidCallback? onTap, // ⭐️修正：nullで無効化できるように
-    bool disabled = false,        // ⭐️追加：見た目も無効っぽく
+    required VoidCallback? onTap,
+    bool disabled = false,
+    Color? borderColor,
+    Color? textColor,
   }) {
+    final color = borderColor ?? Colors.white70;
+
     return Expanded(
       child: GestureDetector(
         onTap: onTap,
         child: Opacity(
-          opacity: disabled ? 0.4 : 1.0, // ⭐️追加
+          opacity: disabled ? 0.4 : 1.0,
           child: Container(
             height: 44,
             alignment: Alignment.center,
             decoration: BoxDecoration(
-              border: Border.all(color: Colors.white70),
+              border: Border.all(color: color),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(icon, size: 18),
+                Icon(icon, size: 18, color: textColor ?? Colors.white),
                 const SizedBox(width: 6),
                 Text(
                   label,
-                  style: const TextStyle(fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: textColor ?? Colors.white,
+                  ),
                 ),
               ],
             ),
@@ -303,6 +310,8 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
                 _bottomButton(
                   label: '削除',
                   icon: Icons.delete_outline,
+                  borderColor: Colors.redAccent.withOpacity(0.8),
+                  textColor: Colors.redAccent,
                   onTap: () async {
                     final ok = await showDialog<bool>(
                       context: context,
