@@ -185,26 +185,32 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _labelValue('カード名', _card.name),
-                    if (_card.price != null)
-                      _labelValue('価格', '¥${_card.price}'),
-                    _labelValue('説明', _card.description),
-                    _labelValue('取得日', _formatDate(_card.date)),
-                    if (_card.source != null && _card.source!.isNotEmpty)
-                      _labelValue('入手先', _card.source!),
+                    // ===== 基本情報 =====
+                    _infoBlock(
+                      '基本情報',
+                      [
+                        _labelValue('カード名', _card.name),
+                        if (_card.price != null)
+                          _labelValue('価格', '¥${_card.price}'),
+                        _labelValue('説明', _card.description),
+                      ],
+                    ),
 
+                    // ===== 付加情報 =====
+                    _infoBlock(
+                      '付加情報',
+                      [
+                        _labelValue('取得日', _formatDate(_card.date)),
+                        if (_card.source != null && _card.source!.isNotEmpty)
+                          _labelValue('入手先', _card.source!),
+                      ],
+                    ),
+
+                    // ===== 分類 =====
                     if (_card.tags != null && _card.tags!.isNotEmpty)
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'タグ',
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: Colors.white70,
-                            ),
-                          ),
-                          const SizedBox(height: 6),
+                      _infoBlock(
+                        '分類',
+                        [
                           Wrap(
                             spacing: 6,
                             runSpacing: 6,
@@ -329,6 +335,32 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
             ),
           ),
         ),
+    );
+  }
+
+  Widget _infoBlock(String title, List<Widget> children) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 20),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.black.withOpacity(0.35),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 13,
+              color: Color(0xFFD4AF37),
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 12),
+          ...children,
+        ],
+      ),
     );
   }
 }

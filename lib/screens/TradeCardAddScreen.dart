@@ -146,139 +146,180 @@ class _TradeCardAddScreenState extends State<TradeCardAddScreen> {
             key: _formKey,
             child: Column(
               children: [
-                // カード名
-                TextFormField(
-                  controller: _nameController,
-                  decoration: const InputDecoration(labelText: 'カード名'),
-                  validator: (value) =>
-                      value == null || value.isEmpty ? '必須項目です' : null,
-                ),
-                const SizedBox(height: 12),
-                // 仕入れ価格
-                TextFormField(
-                  controller: _priceController,
-                  decoration: const InputDecoration(labelText: '販売価格'),
-                  keyboardType: TextInputType.number,
-                  validator: (value) {
-                    if (value == null || value.isEmpty) return '必須項目です';
-                    if (int.tryParse(value) == null) return '数字で入力してください';
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 12),
-                // 画像選択
-                Row(
+
+                // ===== ① 基本情報 =====
+                _section(
+                  title: '基本情報',
                   children: [
-                    _imageFile != null
-                        ? Image.file(
-                      _imageFile!,
-                      width: 80,
-                      height: 80,
-                      fit: BoxFit.cover,
-                    )
-                        : Image.asset(
-                      'assets/images/no_image.png',
-                      width: 80,
-                      height: 80,
-                      fit: BoxFit.contain,
+                    TextFormField(
+                      controller: _nameController,
+                      decoration: const InputDecoration(labelText: 'カード名'),
+                      validator: (value) =>
+                      value == null || value.isEmpty ? '必須項目です' : null,
                     ),
-                    const SizedBox(width: 12),
-                    Column(
+                    const SizedBox(height: 12),
+                    TextFormField(
+                      controller: _priceController,
+                      decoration: const InputDecoration(labelText: '販売価格'),
+                      keyboardType: TextInputType.number,
+                      validator: (value) {
+                        if (value == null || value.isEmpty) return '必須項目です';
+                        if (int.tryParse(value) == null) return '数字で入力してください';
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
                       children: [
-                        ElevatedButton(
-                          onPressed: () => _pickImage(ImageSource.camera),
-                          child: const Text('カメラ'),
-                        ),
-                        ElevatedButton(
-                          onPressed: () => _pickImage(ImageSource.gallery),
-                          child: const Text('ギャラリー'),
+                        _imageFile != null
+                            ? Image.file(_imageFile!, width: 80, height: 80, fit: BoxFit.cover)
+                            : Image.asset('assets/images/no_image.png', width: 80, height: 80),
+                        const SizedBox(width: 12),
+                        Column(
+                          children: [
+                            ElevatedButton(
+                              onPressed: () => _pickImage(ImageSource.camera),
+                              child: const Text('カメラ'),
+                            ),
+                            ElevatedButton(
+                              onPressed: () => _pickImage(ImageSource.gallery),
+                              child: const Text('ギャラリー'),
+                            ),
+                          ],
                         ),
                       ],
                     ),
                   ],
                 ),
-                // ===== 出品先タグ入力 =====
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    '出品先（タグ）',
-                    style: Theme.of(context).textTheme.bodyLarge,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                TextFormField(
-                  controller: _descriptionController,
-                  maxLines: 6,
-                  decoration: const InputDecoration(
-                    labelText: '出品文章',
-                    hintText: 'フリマに貼る説明文を入力',
-                    alignLabelWithHint: true,
-                  ),
-                ),
-                Row(
+
+                // ===== ② 出品情報 =====
+                _section(
+                  title: '出品情報',
                   children: [
-                    Expanded(
-                      child: TextFormField(
-                        controller: _tagController,
-                        decoration: const InputDecoration(
-                          hintText: '例：メルカリ、ヤフオク',
-                        ),
+                    TextFormField(
+                      controller: _descriptionController,
+                      maxLines: 5,
+                      decoration: const InputDecoration(
+                        labelText: '出品文章',
+                        hintText: 'フリマに貼る説明文を入力',
+                        alignLabelWithHint: true,
                       ),
                     ),
-                    const SizedBox(width: 8),
-                    IconButton(
-                      icon: const Icon(Icons.add),
-                      onPressed: () {
-                        final tag = _tagController.text.trim();
-                        if (tag.isNotEmpty && !_listingTags.contains(tag)) {
-                          setState(() {
-                            _listingTags.add(tag);
-                            _tagController.clear();
-                          });
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextFormField(
+                            controller: _tagController,
+                            decoration: const InputDecoration(
+                              hintText: '例：メルカリ、ヤフオク',
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        IconButton(
+                          icon: const Icon(Icons.add),
+                          onPressed: () {
+                            final tag = _tagController.text.trim();
+                            if (tag.isNotEmpty && !_listingTags.contains(tag)) {
+                              setState(() {
+                                _listingTags.add(tag);
+                                _tagController.clear();
+                              });
+                            }
+                          },
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 6,
+                      children: _listingTags.map((tag) {
+                        return Chip(
+                          label: Text(tag),
+                          onDeleted: () => setState(() => _listingTags.remove(tag)),
+                        );
+                      }).toList(),
+                    ),
+                  ],
+                ),
+
+                // ===== ③ 状態 =====
+                _section(
+                  title: '状態',
+                  children: [
+                    CheckboxListTile(
+                      value: _isSold,
+                      onChanged: (value) {
+                        if (value != null) {
+                          setState(() => _isSold = value);
                         }
                       },
+                      title: const Text('売却済み'),
+                      contentPadding: EdgeInsets.zero,
                     ),
                   ],
                 ),
 
                 const SizedBox(height: 8),
 
-                Wrap(
-                  spacing: 6,
-                  children: _listingTags.map((tag) {
-                    return Chip(
-                      label: Text(tag),
-                      deleteIcon: const Icon(Icons.close, size: 18),
-                      onDeleted: () {
-                        setState(() {
-                          _listingTags.remove(tag);
-                        });
-                      },
-                    );
-                  }).toList(),
-                ),
-                const SizedBox(height: 12),
-                // 売却済み
-                CheckboxListTile(
-                  value: _isSold,
-                  onChanged: (value) {
-                    if (value != null) {
-                      setState(() {
-                        _isSold = value;
-                      });
-                    }
-                  },
-                  title: const Text('売却済み'),
-                ),
-                const SizedBox(height: 24),
-                ElevatedButton(
-                  onPressed: _savePurchase,
-                  child: const Text('保存'),
+                // ===== 保存ボタン（②で作ったやつを流用）=====
+                SizedBox(
+                  width: double.infinity,
+                  height: 48,
+                  child: ElevatedButton(
+                    onPressed: _savePurchase,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFD4AF37),
+                      foregroundColor: Colors.black,
+                      elevation: 2,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                    ),
+                    child: const Text(
+                      '保存',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ),
                 ),
               ],
-            ),
+            )
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _section({
+    required String title,
+    required List<Widget> children,
+  }) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 20),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.black.withOpacity(0.25),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFFD4AF37),
+            ),
+          ),
+          const SizedBox(height: 12),
+          ...children,
+        ],
       ),
     );
   }

@@ -143,109 +143,167 @@ class _CardAddScreenState extends State<CardAddScreen> {
                 alignment: Alignment.center,
                 child: _imageFile != null
                     ? Image.file(_imageFile!, fit: BoxFit.contain)
-                    : Image.asset(
-                  'assets/images/no_image.png',
-                  fit: BoxFit.contain,
-                ),
+                    : Image.asset('assets/images/no_image.png', fit: BoxFit.contain),
               ),
-            ),
-
-            const SizedBox(height: 12),
-
-            // ===== Name =====
-            TextFormField(
-              controller: _nameController,
-              decoration: const InputDecoration(labelText: 'カード名'),
-              validator: (v) =>
-              v == null || v.isEmpty ? '必須項目です' : null,
-            ),
-
-            // ===== Description =====
-            TextFormField(
-              controller: _descriptionController,
-              decoration: const InputDecoration(labelText: '説明'),
-            ),
-
-            // ===== Price =====
-            TextFormField(
-              controller: _priceController,
-              decoration: const InputDecoration(labelText: '価格'),
-              keyboardType: TextInputType.number,
-            ),
-
-            // ===== Source =====
-            TextFormField(
-              controller: _sourceController,
-              decoration: const InputDecoration(labelText: '入手先'),
-            ),
-
-            // ===== Wishlist =====
-            CheckboxListTile(
-              title: const Text('ウィッシュリスト'),
-              value: _isWishList,
-              onChanged: (v) =>
-                  setState(() => _isWishList = v ?? false),
-            ),
-
-            // ===== Date =====
-            ListTile(
-              title: Text(
-                _selectedDate == null
-                    ? '取得日を選択'
-                    : '取得日: ${_selectedDate!.year}/${_selectedDate!.month}/${_selectedDate!.day}',
-              ),
-              trailing: const Icon(Icons.calendar_today),
-              onTap: () async {
-                final picked = await showDatePicker(
-                  context: context,
-                  initialDate: _selectedDate ?? DateTime.now(),
-                  firstDate: DateTime(2000),
-                  lastDate: DateTime.now(),
-                );
-                if (picked != null) {
-                  setState(() => _selectedDate = picked);
-                }
-              },
-            ),
-
-            const SizedBox(height: 12),
-
-            // ===== Tags =====
-            const Text('タグ'),
-            Wrap(
-              spacing: 6,
-              runSpacing: 6,
-              children: _tags
-                  .map(
-                    (t) => Chip(
-                  label: Text(t),
-                  onDeleted: () =>
-                      setState(() => _tags.remove(t)),
-                ),
-              )
-                  .toList(),
-            ),
-            TextField(
-              controller: _tagController,
-              decoration:
-              const InputDecoration(labelText: 'タグ追加（Enter）'),
-              onSubmitted: (v) {
-                final value = v.trim();
-                if (value.isEmpty || _tags.contains(value)) return;
-                setState(() {
-                  _tags.add(value);
-                  _tagController.clear();
-                });
-              },
             ),
 
             const SizedBox(height: 24),
-            ElevatedButton(
-              onPressed: _save,
-              child: const Text('保存'),
+
+            // 🟨 基本情報
+            _section(
+              title: '基本情報',
+              children: [
+                TextFormField(
+                  controller: _nameController,
+                  decoration: const InputDecoration(labelText: 'カード名'),
+                  validator: (v) =>
+                  v == null || v.isEmpty ? '必須項目です' : null,
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: _descriptionController,
+                  decoration: const InputDecoration(labelText: '説明'),
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: _priceController,
+                  decoration: const InputDecoration(labelText: '価格'),
+                  keyboardType: TextInputType.number,
+                ),
+              ],
             ),
+
+            // 🟦 付加情報
+            _section(
+              title: '付加情報',
+              children: [
+                TextFormField(
+                  controller: _sourceController,
+                  decoration: const InputDecoration(labelText: '入手元'),
+                ),
+                const SizedBox(height: 8),
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: Text(
+                    _selectedDate == null
+                        ? '取得日を選択'
+                        : '取得日: ${_selectedDate!.year}/${_selectedDate!.month}/${_selectedDate!.day}',
+                  ),
+                  trailing: const Icon(Icons.calendar_today),
+                  onTap: () async {
+                    final picked = await showDatePicker(
+                      context: context,
+                      initialDate: _selectedDate ?? DateTime.now(),
+                      firstDate: DateTime(2000),
+                      lastDate: DateTime.now(),
+                    );
+                    if (picked != null) {
+                      setState(() => _selectedDate = picked);
+                    }
+                  },
+                ),
+                CheckboxListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text('ウィッシュリスト'),
+                  value: _isWishList,
+                  onChanged: (v) =>
+                      setState(() => _isWishList = v ?? false),
+                ),
+              ],
+            ),
+
+            // 🟪 分類
+            _section(
+              title: 'タグ',
+              children: [
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: _tags
+                      .map(
+                        (t) => Chip(
+                      label: Text(t),
+                      onDeleted: () =>
+                          setState(() => _tags.remove(t)),
+                    ),
+                  )
+                      .toList(),
+                ),
+                TextField(
+                  controller: _tagController,
+                  decoration:
+                  const InputDecoration(labelText: 'タグ追加（Enter）'),
+                  onSubmitted: (v) {
+                    final value = v.trim();
+                    if (value.isEmpty || _tags.contains(value)) return;
+                    setState(() {
+                      _tags.add(value);
+                      _tagController.clear();
+                    });
+                  },
+                ),
+              ],
+            ),
+
+            // ✅ 保存前の「余白」
+            const SizedBox(height: 32),
+
+            SizedBox(
+              width: double.infinity,
+              height: 48,
+              child: ElevatedButton(
+                onPressed: _save,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFD4AF37), // ゴールド
+                  foregroundColor: Colors.black,
+                  elevation: 2,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                ),
+                child: const Text(
+                  '保存',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 24),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _section({
+    required String title,
+    required List<Widget> children,
+  }) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 20),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.black.withOpacity(0.25),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFFD4AF37),
+            ),
+          ),
+          const SizedBox(height: 12),
+          ...children,
+        ],
       ),
     );
   }
