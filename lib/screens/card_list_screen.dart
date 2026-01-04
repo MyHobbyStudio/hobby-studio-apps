@@ -9,7 +9,6 @@ import 'package:path_provider/path_provider.dart';
 import '../models/card_model.dart';
 import 'card_add_screen.dart';
 import 'card_detail_screen.dart';
-import 'allowance_screen.dart';
 import 'stats_home_screen.dart';
 import 'card_bulk_add_screen.dart' as bulk;
 import 'trade_card_screen.dart';
@@ -170,7 +169,7 @@ class _CardListScreenState extends State<CardListScreen> {
     }
 
     return AppBar(
-      title: const Text('カード一覧'),
+      // title: const Text('カード一覧'),
       actions: [
         IconButton(
           icon: Image.asset('assets/images/search_loop.png', width: 32),

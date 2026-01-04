@@ -147,24 +147,6 @@ class _AllowanceScreenState extends State<AllowanceScreen> {
                 onPressed: _resetToday,
                 child: Text('今日のお小遣いをリセット'),
               ),
-              // AllowanceScreen の Column 内の一番下に追加
-              // ElevatedButton(
-              //   onPressed: () {
-              //     final spendBox = Hive.box<Spend>('spends');
-              //     print('💰 現在の支出件数: ${spendBox.length}');
-              //     for (var i = 0; i < spendBox.length; i++) {
-              //       final spend = spendBox.getAt(i);
-              //       print(
-              //         '[$i] ${spend?.date} | ${spend?.amount}円 | ${spend?.description}',
-              //       );
-              //     }
-              //   },
-              //   style: ElevatedButton.styleFrom(
-              //     backgroundColor: Colors.blueAccent,
-              //     foregroundColor: Colors.white,
-              //   ),
-              //   child: Text('支出データ確認（デバッグ用）'),
-              // ),
               SizedBox(height: 16),
               TextField(
                 controller: _spendController,
