@@ -212,7 +212,7 @@ class _TradeCardAddScreenState extends State<TradeCardAddScreen> {
                           child: TextFormField(
                             controller: _tagController,
                             decoration: const InputDecoration(
-                              hintText: '例：メルカリ、ヤフオク',
+                              hintText: '出品先',
                             ),
                           ),
                         ),
