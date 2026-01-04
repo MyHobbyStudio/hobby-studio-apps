@@ -24,12 +24,14 @@ enum CardSort {
   priceHigh,
   priceLow,
   nameAZ,
+  nameZA,
 }
 
 enum ListingFilter {
   all,
   listed,
   unlisted,
+  wishlist,
 }
 
 class CardListScreen extends StatefulWidget {
@@ -44,7 +46,6 @@ class _CardListScreenState extends State<CardListScreen> {
   List<CardModel> _filteredCards = [];
 
   bool _isSearching = false;
-  bool _showWishlistOnly = false;
   late Box<Purchase> _purchaseBox;
 
   final TextEditingController _searchController = TextEditingController();
@@ -94,19 +95,16 @@ class _CardListScreenState extends State<CardListScreen> {
   void _applyFilters() {
     List<CardModel> temp = List.from(_cards);
 
-    // ★ 出品フィルタ（④）
+    // ===== フィルタ =====
     if (_listingFilter == ListingFilter.listed) {
       temp = temp.where(_isListed).toList();
     } else if (_listingFilter == ListingFilter.unlisted) {
       temp = temp.where((c) => !_isListed(c)).toList();
-    }
-
-    // wishlist
-    if (_showWishlistOnly) {
+    } else if (_listingFilter == ListingFilter.wishlist) {
       temp = temp.where((c) => c.isWishList).toList();
     }
 
-    // 検索
+    // ===== 検索 =====
     if (_isSearching && _searchController.text.isNotEmpty) {
       final q = _searchController.text.toLowerCase();
       temp = temp.where((c) {
@@ -117,7 +115,7 @@ class _CardListScreenState extends State<CardListScreen> {
       }).toList();
     }
 
-    // 並び順
+    // ===== 並び順 =====
     temp.sort((a, b) {
       final aDate = a.date ?? DateTime.fromMillisecondsSinceEpoch(0);
       final bDate = b.date ?? DateTime.fromMillisecondsSinceEpoch(0);
@@ -135,6 +133,8 @@ class _CardListScreenState extends State<CardListScreen> {
           return aPrice.compareTo(bPrice);
         case CardSort.nameAZ:
           return a.name.toLowerCase().compareTo(b.name.toLowerCase());
+        case CardSort.nameZA:
+          return b.name.toLowerCase().compareTo(a.name.toLowerCase());
       }
     });
 
@@ -223,16 +223,6 @@ class _CardListScreenState extends State<CardListScreen> {
           },
         ),
         IconButton(
-          icon: Image.asset('assets/images/wish_star.png', width: 32),
-          color: _showWishlistOnly ? Colors.yellow : null,
-          onPressed: () {
-            setState(() {
-              _showWishlistOnly = !_showWishlistOnly;
-              _applyFilters();
-            });
-          },
-        ),
-        IconButton(
           icon: Image.asset('assets/images/statistics.png', width: 32),
           onPressed: () {
             Navigator.push(
@@ -243,15 +233,6 @@ class _CardListScreenState extends State<CardListScreen> {
             );
           },
         ),
-        // IconButton(
-        //   icon: Image.asset('assets/images/wallet.png', width: 32),
-        //   onPressed: () {
-        //     Navigator.push(
-        //       context,
-        //       MaterialPageRoute(builder: (_) => AllowanceScreen()),
-        //     );
-        //   },
-        // ),
         IconButton(
           icon: const Icon(Icons.settings),
           tooltip: '設定',
@@ -287,6 +268,7 @@ class _CardListScreenState extends State<CardListScreen> {
           _sortChip('高い', CardSort.priceHigh),
           _sortChip('安い', CardSort.priceLow),
           _sortChip('A→Z', CardSort.nameAZ),
+          _sortChip('Z→A', CardSort.nameZA),
 
           const SizedBox(width: 12),
 
@@ -294,6 +276,7 @@ class _CardListScreenState extends State<CardListScreen> {
           _listingFilterChip('全部', ListingFilter.all),
           _listingFilterChip('出品中', ListingFilter.listed),
           _listingFilterChip('未出品', ListingFilter.unlisted),
+          _listingFilterChip('⭐︎', ListingFilter.wishlist),
         ],
       ),
     );

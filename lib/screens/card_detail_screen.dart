@@ -271,7 +271,7 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
                 const SizedBox(width: 8),
 
                 _bottomButton(
-                  label: _isListed ? '出品済み' : '出品',
+                  label: _isListed ? '出品済' : '出品',
                   icon: Icons.sell,
                   disabled: _isListed,
                   onTap: _isListed
@@ -361,7 +361,7 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
           Text(
             title,
             style: const TextStyle(
-              fontSize: 13,
+              fontSize: 8,
               color: Color(0xFFD4AF37),
               fontWeight: FontWeight.bold,
             ),
