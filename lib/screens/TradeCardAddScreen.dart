@@ -177,10 +177,10 @@ class _TradeCardAddScreenState extends State<TradeCardAddScreen> {
                         const SizedBox(width: 12),
                         Column(
                           children: [
-                            ElevatedButton(
-                              onPressed: () => _pickImage(ImageSource.camera),
-                              child: const Text('カメラ'),
-                            ),
+                            // ElevatedButton(
+                            //   onPressed: () => _pickImage(ImageSource.camera),
+                            //   child: const Text('カメラ'),
+                            // ),
                             ElevatedButton(
                               onPressed: () => _pickImage(ImageSource.gallery),
                               child: const Text('ギャラリー'),
